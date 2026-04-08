@@ -1,0 +1,31 @@
+# 本文件必须放在「构建上下文根目录」。
+# 请从仓库根目录执行：docker build -f Dockerfile .
+# 若在子目录执行且 context 为子目录（例如 backend/），则不会读取仓库根的 .dockerignore。
+
+# --- 通用：任意深度的缓存与本地环境 ---
+**/.pytest_cache
+**/__pycache__
+**/*.py[cod]
+**/*.so
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+**/node_modules
+**/dist
+**/.DS_Store
+**/.gitignore
+**/*.egg-info
+
+# --- 与 COPY frontend / COPY backend 路径对齐（冗余但可读）---
+frontend/node_modules
+frontend/dist
+.vscode
+
+# --- backend 运行时数据与构建产物（不应打进镜像）---
+backend/config/
+backend/downloads/
+backend/static/
+backend/test_download/
+backend/.venv
+backend/tests/
+backend/**/*.egg-info

@@ -1,0 +1,44 @@
+{
+  "id": "5150258",
+  "name": "m3u8-dl",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "28897511",
+      "name": "edit",
+      "font_class": "edit",
+      "unicode": "e60c",
+      "unicode_decimal": 58892
+    },
+    {
+      "icon_id": "19418410",
+      "name": "edit",
+      "font_class": "edit1",
+      "unicode": "e724",
+      "unicode_decimal": 59172
+    },
+    {
+      "icon_id": "1170589",
+      "name": "play",
+      "font_class": "play",
+      "unicode": "e647",
+      "unicode_decimal": 58951
+    },
+    {
+      "icon_id": "7712693",
+      "name": "pause",
+      "font_class": "pause",
+      "unicode": "e733",
+      "unicode_decimal": 59187
+    },
+    {
+      "icon_id": "42575462",
+      "name": "delete",
+      "font_class": "delete",
+      "unicode": "e650",
+      "unicode_decimal": 58960
+    }
+  ]
+}
