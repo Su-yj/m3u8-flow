@@ -15,6 +15,7 @@
     "format": "oxfmt src/"
   },
   "dependencies": {
+    "@microsoft/fetch-event-source": "^2.0.1",
     "axios": "^1.13.6",
     "element-plus": "^2.13.6",
     "pinia": "^3.0.4",

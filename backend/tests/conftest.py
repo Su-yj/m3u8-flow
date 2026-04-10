@@ -15,6 +15,16 @@ os.environ["TESTING"] = "1"
 ClientManagerType = AsyncGenerator[httpx.AsyncClient, None]
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _disable_auth_for_tests():
+    from app.core.config import settings
+
+    original = settings.auth
+    settings.auth = False
+    yield
+    settings.auth = original
+
+
 @pytest.fixture(scope="session")
 def anyio_backend() -> str:
     return "asyncio"

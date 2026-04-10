@@ -19,6 +19,7 @@ dependencies = [
     "m3u8>=6.0.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
+    "pyjwt>=2.12.1",
     "sse-starlette>=3.3.3",
     "tortoise-orm>=1.1.7",
     "tzdata>=2025.2",

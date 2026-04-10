@@ -9,10 +9,14 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { setupAxiosInterceptors } from './utils/http'
 
 const app = createApp(App)
 
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
+
+setupAxiosInterceptors(pinia, router)
 
 app.mount('#app')

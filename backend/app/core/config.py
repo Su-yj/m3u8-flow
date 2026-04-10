@@ -1,3 +1,4 @@
+import secrets
 from functools import cached_property
 from pathlib import Path
 from typing import Any
@@ -42,6 +43,28 @@ class Settings(BaseSettings):
         default=str(project_root / "downloads"),
         alias="DOWNLOAD_DIR",
         title="下载目录",
+    )
+
+    auth: bool = Field(default=True, alias="AUTH", title="启用认证")
+    username: str = Field(default="admin", alias="USERNAME", title="用户名")
+    password: str = Field(default="123456", alias="PASSWORD", title="密码")
+    # JWT 相关
+    secret_key: str = Field(
+        default=secrets.token_urlsafe(32), alias="SECRET_KEY", title="密钥"
+    )
+    algorithm: str = Field(default="HS256", alias="ALGORITHM", title="算法")
+    access_token_expire_minutes: int = Field(
+        default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES", title="访问令牌过期时间"
+    )
+    refresh_token_expire_minutes: int = Field(
+        default=60 * 24 * 7,
+        alias="REFRESH_TOKEN_EXPIRE_MINUTES",
+        title="刷新令牌过期时间",
+    )
+    refresh_token_replace_minutes: int = Field(
+        default=60 * 24 * 1,
+        alias="REFRESH_TOKEN_REPLACE_MINUTES",
+        title="刷新令牌替换时间",
     )
 
     @computed_field
