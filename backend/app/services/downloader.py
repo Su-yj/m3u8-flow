@@ -27,6 +27,13 @@ class Downloader(BaseDownloader[DownloadConfig, DownloadInfo]):
                 (segment.duration or 0.0) for segment in self.config.playlist.segments
             ),
         )
+        self._segment_duration_by_uri: dict[str, float] = {}
+        for segment in self.config.playlist.segments:
+            if segment.absolute_uri is None:
+                continue
+            self._segment_duration_by_uri[str(segment.absolute_uri)] = float(
+                segment.duration or 0.0
+            )
         # 并发控制
         self._semaphore = asyncio.Semaphore(self.config.concurrency)
         # 令牌桶限流器
@@ -90,6 +97,10 @@ class Downloader(BaseDownloader[DownloadConfig, DownloadInfo]):
                     self.info.total_size += download_path.stat().st_size
                     # 更新完成下载的片段数
                     self.info.downloaded_segments += 1
+                    if segment.absolute_uri is not None:
+                        self.info.downloaded_duration += self._segment_duration_by_uri.get(
+                            str(segment.absolute_uri), 0.0
+                        )
             except asyncio.CancelledError:
                 if download_path.exists():
                     download_path.unlink()
@@ -124,6 +135,10 @@ class Downloader(BaseDownloader[DownloadConfig, DownloadInfo]):
                 if download_path.exists():
                     self.info.downloaded_segments += 1
                     self.info.total_size += download_path.stat().st_size
+                    if segment.absolute_uri is not None:
+                        self.info.downloaded_duration += self._segment_duration_by_uri.get(
+                            str(segment.absolute_uri), 0.0
+                        )
                     continue
                 tasks.append(
                     self.download_segment(

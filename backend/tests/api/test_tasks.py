@@ -100,3 +100,20 @@ async def test_create_task_without_hash_id(client: httpx.AsyncClient):
     assert result["data"]["m3u8_url"] == payload["m3u8_url"]
     assert result["data"]["hash_id"] is not None
     assert len(result["data"]["hash_id"]) == 64
+
+
+async def test_create_task_rejects_unsafe_task_name(client: httpx.AsyncClient):
+    payload = {
+        "name": "../escape",
+        "m3u8_url": "https://example.com/new.m3u8",
+        "download_dir": "downloads",
+        "concurrency": 2,
+        "speed_limit": None,
+        "chunk_size": None,
+        "proxy": None,
+        "headers": None,
+        "merge_video": True,
+        "delete_cache": True,
+    }
+    response = await client.post("/api/tasks/", json=payload)
+    assert response.status_code == 422

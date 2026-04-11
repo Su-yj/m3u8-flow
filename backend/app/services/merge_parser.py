@@ -29,8 +29,16 @@ class MergeParser(BaseMergeParser):
         )
         try:
             list_file_path.write_text(file_list_content, encoding="utf-8")
+            from app.models import GlobalConfig
+
+            global_config, _ = await GlobalConfig.get_or_create()
+            ffmpeg_bin = (
+                global_config.ffmpeg_path.strip()
+                if global_config.ffmpeg_path and global_config.ffmpeg_path.strip()
+                else "ffmpeg"
+            )
             cmd = [
-                "ffmpeg",
+                ffmpeg_bin,
                 "-f",
                 "concat",
                 "-safe",
