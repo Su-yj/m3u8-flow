@@ -31,6 +31,18 @@ class DownloadConfig(BaseModel):
         description="如：http://127.0.0.1:7890，默认 None，即不使用代理",
     )
     headers: dict[str, str] | None = Field(default=None, title="请求头")
+    segment_max_retries: int = Field(
+        default=5,
+        ge=1,
+        title="分片下载最大尝试次数",
+        description="含首次请求；流式读取阶段的超时、断连等会按此次数重试",
+    )
+    segment_retry_backoff: float = Field(
+        default=0.5,
+        ge=0.0,
+        title="分片重试初始退避秒数",
+        description="指数退避：第 n 次重试前等待 backoff * 2^n 秒",
+    )
 
     @computed_field(title="下载路径")
     @cached_property

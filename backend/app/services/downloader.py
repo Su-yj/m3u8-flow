@@ -13,6 +13,19 @@ from app.services.speed_monitor import SpeedMonitor
 from app.utils.http_retries import get_transport
 
 
+def _is_retryable_segment_error(exc: BaseException) -> bool:
+    """流式下载阶段可重试的网络/超时类错误（transport 层通常不会在 body 读取时重试）。"""
+    if isinstance(exc, httpx.TimeoutException):
+        return True
+    if isinstance(exc, httpx.NetworkError):
+        return True
+    if isinstance(exc, httpx.RemoteProtocolError):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500
+    return False
+
+
 class Downloader(BaseDownloader[DownloadConfig, DownloadInfo]):
     def __init__(self, config: DownloadConfig):
         """下载器，用于下载 M3U8 播放列表中的片段"""
@@ -66,40 +79,59 @@ class Downloader(BaseDownloader[DownloadConfig, DownloadInfo]):
         self, client: httpx.AsyncClient, segment: m3u8.Segment, download_path: Path
     ):
         async with self._semaphore:
-            try:
-                self._check_stopped()
-                # print(f"Downloading segment {segment.absolute_uri}")
-                # if int(download_path.stem) > 10:
-                #     raise Exception("Test exception")
-                async with client.stream("GET", segment.absolute_uri) as response:
-                    response.raise_for_status()
-                    self._check_stopped()
-                    async with aiofiles.open(download_path, "wb") as f:
-                        # 下载片段，确保完整下载
-                        async for chunk in response.aiter_bytes(self.config.chunk_size):
-                            self._check_stopped()
+            max_attempts = self.config.segment_max_retries
+            backoff = self.config.segment_retry_backoff
 
-                            chunk_size = len(chunk)
-                            # 限流
-                            if self.rate_limiter:
-                                await self.rate_limiter.acquire(chunk_size)
-                            await f.write(chunk)
-                            # 更新速度监控
-                            self.info.speed_monitor.add_sample(chunk_size)
-                    # 更新总文件大小
-                    self.info.total_size += download_path.stat().st_size
-                    # 更新完成下载的片段数
-                    self.info.downloaded_segments += 1
-            except asyncio.CancelledError:
-                if download_path.exists():
-                    download_path.unlink()
-                raise
-            except Exception as e:
-                logger.exception(f"Download segment failed: {e}")
-                self.info.failed_segments += 1
-                if download_path.exists():
-                    download_path.unlink()
-                return
+            for attempt in range(max_attempts):
+                try:
+                    self._check_stopped()
+                    async with client.stream("GET", segment.absolute_uri) as response:
+                        response.raise_for_status()
+                        self._check_stopped()
+                        async with aiofiles.open(download_path, "wb") as f:
+                            async for chunk in response.aiter_bytes(
+                                self.config.chunk_size
+                            ):
+                                self._check_stopped()
+
+                                chunk_size = len(chunk)
+                                if self.rate_limiter:
+                                    await self.rate_limiter.acquire(chunk_size)
+                                await f.write(chunk)
+                                self.info.speed_monitor.add_sample(chunk_size)
+                        self.info.total_size += download_path.stat().st_size
+                        self.info.downloaded_segments += 1
+                    return
+                except asyncio.CancelledError:
+                    if download_path.exists():
+                        download_path.unlink()
+                    raise
+                except Exception as e:
+                    if download_path.exists():
+                        download_path.unlink()
+
+                    if not _is_retryable_segment_error(e):
+                        logger.exception(f"Download segment failed: {e}")
+                        self.info.failed_segments += 1
+                        return
+
+                    if attempt >= max_attempts - 1:
+                        logger.exception(
+                            f"Download segment failed after {max_attempts} attempts: {e}"
+                        )
+                        self.info.failed_segments += 1
+                        return
+
+                    delay = backoff * (2**attempt)
+                    logger.warning(
+                        "Segment download attempt %s/%s failed (%s: %s), retrying in %.2fs",
+                        attempt + 1,
+                        max_attempts,
+                        type(e).__name__,
+                        e,
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
 
     async def start(self):
         # 创建下载目录
@@ -136,24 +168,3 @@ class Downloader(BaseDownloader[DownloadConfig, DownloadInfo]):
 
     async def stop(self):
         self.stop_event.set()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    from app.lib.tools import parse_m3u8_url
-
-    url = "https://surrit.com/c7d7acc4-a2c6-4185-bcbf-ecb4854d25e3/1080p/video.m3u8"
-
-    async def main():
-        # 示例：直接下载到本地目录（实际使用请替换下载路径）
-        playlist = await parse_m3u8_url(url)
-        downloader = Downloader(
-            config=DownloadConfig(
-                playlist=playlist,
-                download_dir=str(Path("test_download")),
-            )
-        )
-        await downloader.start()
-
-    asyncio.run(main())
