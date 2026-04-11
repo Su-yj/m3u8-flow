@@ -2,6 +2,7 @@ import hashlib
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic_core import PydanticCustomError
 from tortoise.contrib.pydantic import PydanticModel, pydantic_model_creator
 
 from app.models import Task
@@ -31,7 +32,12 @@ class TaskCreatePydantic(BaseModel):
     @field_validator("name")
     @classmethod
     def validate_name(cls, value: str) -> str:
-        return validate_task_name(value)
+        try:
+            return validate_task_name(value)
+        except ValueError as exc:
+            raise PydanticCustomError(
+                "task_name_invalid", str(exc)
+            ) from exc
 
     @computed_field(title="任务哈希ID")
     @property
