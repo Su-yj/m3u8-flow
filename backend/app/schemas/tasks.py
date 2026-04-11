@@ -1,10 +1,11 @@
 import hashlib
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 from tortoise.contrib.pydantic import PydanticModel, pydantic_model_creator
 
 from app.models import Task
+from app.utils.path_safety import validate_task_name
 
 if TYPE_CHECKING:
 
@@ -26,6 +27,11 @@ class TaskCreatePydantic(BaseModel):
     headers: dict[str, str] | None = None
     merge_video: bool = True
     delete_cache: bool = True
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        return validate_task_name(value)
 
     @computed_field(title="任务哈希ID")
     @property

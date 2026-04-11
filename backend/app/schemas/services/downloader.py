@@ -48,6 +48,7 @@ class DownloadInfo(BaseModel):
     failed_segments: int = Field(default=0, title="失败片段数")
     total_size: int = Field(default=0, title="已下载文件大小")
     total_duration: float = Field(default=0, title="总时长")
+    downloaded_duration: float = Field(default=0, title="已下载时长")
 
     speed_monitor: SpeedMonitor = Field(default_factory=SpeedMonitor, title="速度监控")
 
@@ -59,16 +60,20 @@ class DownloadInfo(BaseModel):
     @computed_field(title="进度", description="单位：%")
     @property
     def progress(self) -> float:
+        if self.total_segments <= 0:
+            return 0.0
         return self.downloaded_segments / self.total_segments * 100
 
     @computed_field(title="预计剩余时间", description="单位：秒")
     @property
     def eta(self) -> float | None:
-        try:
-            return (
-                (self.total_duration - self.downloaded_segments)
-                * (self.total_size / self.downloaded_segments)
-                / self.speed
-            )
-        except ZeroDivisionError:
+        if self.speed <= 0 or self.total_duration <= 0:
             return None
+        if self.downloaded_duration <= 0 or self.total_size <= 0:
+            return None
+        remaining_duration = max(self.total_duration - self.downloaded_duration, 0.0)
+        if remaining_duration <= 0:
+            return 0.0
+        bytes_per_second_duration = self.total_size / self.downloaded_duration
+        remaining_bytes = remaining_duration * bytes_per_second_duration
+        return max(remaining_bytes / self.speed, 0.0)

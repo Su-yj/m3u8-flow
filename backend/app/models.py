@@ -17,6 +17,7 @@ from app.schemas.services.downloader import DownloadConfig
 from app.services.downloader import Downloader
 from app.services.merge_parser import MergeParser
 from app.utils.http_retries import get_transport
+from app.utils.path_safety import build_task_download_path
 
 
 class BaseConfig(Model):
@@ -77,7 +78,7 @@ class Task(BaseConfig):
 
     @cached_property
     def download_path(self) -> Path:
-        return Path(self.download_dir) / self.name
+        return build_task_download_path(self.download_dir, self.name)
 
     @cached_property
     def cache_path(self) -> Path:
@@ -188,11 +189,13 @@ class Task(BaseConfig):
         if not await self.is_download_completed():
             return
         segments = list(self.cache_path.glob("*.ts"))
+        global_config, _ = await GlobalConfig.get_or_create()
         # 合并视频片段
         await self.merge_parser.merge(
             segments=segments,
             output_path=self.download_path / f"{self.name}.mp4",
             playlist=self.playlist,  # pyright: ignore[reportArgumentType]
+            ffmpeg_path=global_config.ffmpeg_path,
         )
 
     async def clean_cache(self):

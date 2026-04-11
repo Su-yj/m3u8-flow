@@ -1,4 +1,7 @@
+import pytest
+
 from app.models import GlobalConfig, Task
+from app.utils.path_safety import build_task_download_path, validate_task_name
 
 
 async def test_get_or_create_default_global_config():
@@ -24,3 +27,20 @@ async def test_create_task():
     print(task)
 
     assert await Task.filter(hash_id=task.hash_id).exists(), "Task not created"
+
+
+def test_validate_task_name_rejects_invalid_values():
+    invalid_names = ["", "   ", ".", "..", "../escape", "dir/name", "/abs/path", r"..\escape"]
+    for name in invalid_names:
+        with pytest.raises(ValueError):
+            validate_task_name(name)
+
+
+def test_build_task_download_path_stays_under_base_dir():
+    target = build_task_download_path("/tmp/downloads", "safe-task")
+    assert target.as_posix().endswith("/tmp/downloads/safe-task")
+
+
+def test_build_task_download_path_rejects_escape_name():
+    with pytest.raises(ValueError):
+        build_task_download_path("/tmp/downloads", "../escape")
