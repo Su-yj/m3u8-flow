@@ -1,81 +1,111 @@
 <template>
-  <div class="headers-editor">
-    <div class="headers-editor-toolbar">
-      <el-radio-group v-model="mode" size="small">
-        <el-radio-button label="table">表格</el-radio-button>
-        <el-radio-button label="text">文本</el-radio-button>
-      </el-radio-group>
+  <div class="w-full">
+    <div class="mb-2">
+      <UiSegmented
+        v-model="mode"
+        :options="[
+          { label: '表格', value: 'table' },
+          { label: '文本', value: 'text' },
+        ]"
+      />
     </div>
 
-    <div v-show="mode === 'table'" class="headers-editor-table-wrap">
-      <el-table
-        :data="rows"
-        border
-        size="small"
-        class="headers-editor-table"
-        empty-text="暂无请求头"
-      >
-        <el-table-column prop="key" label="键" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="value" label="值" min-width="200" show-overflow-tooltip />
-        <el-table-column width="100" align="center">
-          <template #header>
-            <div class="headers-editor-op-header">
-              <span style="vertical-align: middle; margin-right: 8px">操作</span>
-              <el-button type="primary" link size="small" @click="openAddDialog">添加</el-button>
-            </div>
-          </template>
-          <template #default="{ $index }">
-            <el-button type="warning" link size="small" @click="openEditDialog($index)"
-              >编辑</el-button
-            >
-            <el-button type="danger" link size="small" @click="removeRow($index)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+    <div
+      v-show="mode === 'table'"
+      class="overflow-x-auto rounded-lg border border-[var(--color-border)]"
+    >
+      <table class="w-full min-w-[400px] border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+            <th class="px-2 py-2 text-left font-semibold">键</th>
+            <th class="px-2 py-2 text-left font-semibold">值</th>
+            <th class="w-28 px-2 py-2 text-center font-semibold">
+              <div class="flex items-center justify-center gap-2">
+                <span>操作</span>
+                <UiButton variant="ghost" size="sm" class="h-7 px-1 text-xs" @click="openAddDialog"
+                  >添加</UiButton
+                >
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="rows.length === 0">
+            <td colspan="3" class="px-2 py-6 text-center text-[var(--color-text-muted)]">
+              暂无请求头
+            </td>
+          </tr>
+          <tr
+            v-for="(row, $index) in rows"
+            :key="$index"
+            class="border-b border-[var(--color-border)] last:border-0"
+          >
+            <td class="max-w-[180px] px-2 py-1.5 align-top break-all">{{ row.key }}</td>
+            <td class="px-2 py-1.5 align-top break-all">{{ row.value }}</td>
+            <td class="px-2 py-1.5 text-center whitespace-nowrap">
+              <UiButton
+                variant="ghost"
+                size="sm"
+                class="h-7 px-1 text-amber-700 dark:text-amber-300"
+                @click="openEditDialog($index)"
+              >
+                编辑
+              </UiButton>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                class="h-7 px-1 text-red-600 dark:text-red-400"
+                @click="removeRow($index)"
+              >
+                删除
+              </UiButton>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <div v-show="mode === 'text'" class="headers-editor-text-wrap">
-      <el-input
+    <div v-show="mode === 'text'" class="w-full">
+      <UiTextarea
         v-model="textContent"
-        type="textarea"
         :rows="8"
         placeholder="每行一条，格式：键: 值（以第一个冒号分隔键与值）"
         @blur="syncTextToRows"
       />
     </div>
 
-    <el-dialog
+    <UiModal
       v-model="rowDialogVisible"
       :title="editingIndex === null ? '添加请求头' : '编辑请求头'"
-      width="480px"
-      append-to-body
-      destroy-on-close
-      @closed="resetRowDialog"
+      width-class="w-full max-w-[480px]"
+      @update:model-value="onRowDialogClose"
     >
-      <el-form label-width="48px" @submit.prevent>
-        <el-form-item label="键" required>
-          <el-input v-model="rowDialogForm.key" placeholder="例如：Authorization" />
-        </el-form-item>
-        <el-form-item label="值">
-          <el-input
-            v-model="rowDialogForm.value"
-            type="textarea"
-            :rows="4"
-            placeholder="例如：Bearer xxx"
-          />
-        </el-form-item>
-      </el-form>
+      <form class="flex flex-col gap-3" @submit.prevent="confirmRowDialog">
+        <UiFormRow label="键">
+          <UiInput v-model="rowDialogForm.key" placeholder="例如：Authorization" />
+        </UiFormRow>
+        <UiFormRow label="值">
+          <UiTextarea v-model="rowDialogForm.value" :rows="4" placeholder="例如：Bearer xxx" />
+        </UiFormRow>
+      </form>
       <template #footer>
-        <el-button @click="rowDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmRowDialog">确定</el-button>
+        <UiButton variant="secondary" @click="rowDialogVisible = false">取消</UiButton>
+        <UiButton variant="primary" @click="confirmRowDialog">确定</UiButton>
       </template>
-    </el-dialog>
+    </UiModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+
+import UiButton from '@/components/ui/UiButton.vue'
+import UiFormRow from '@/components/ui/UiFormRow.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiModal from '@/components/ui/UiModal.vue'
+import UiSegmented from '@/components/ui/UiSegmented.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
+import { toast } from '@/utils/toast'
 
 type HeaderRow = { key: string; value: string }
 
@@ -225,10 +255,17 @@ function removeRow(index: number) {
   rows.value.splice(index, 1)
 }
 
+function onRowDialogClose(open: boolean) {
+  if (!open) {
+    editingIndex.value = null
+    rowDialogForm.value = { key: '', value: '' }
+  }
+}
+
 function confirmRowDialog() {
   const key = rowDialogForm.value.key.trim()
   if (!key) {
-    ElMessage.warning('请输入键')
+    toast.warning('请输入键')
     return
   }
   const entry: HeaderRow = { key, value: rowDialogForm.value.value }
@@ -240,12 +277,6 @@ function confirmRowDialog() {
   rowDialogVisible.value = false
 }
 
-function resetRowDialog() {
-  editingIndex.value = null
-  rowDialogForm.value = { key: '', value: '' }
-}
-
-/** 提交前调用：将文本模式同步为表格数据并发 JSON，避免未失焦时未写入 */
 function flush() {
   if (mode.value === 'text') {
     rows.value = parseTextToRows(textContent.value)
@@ -254,25 +285,3 @@ function flush() {
 
 defineExpose({ flush })
 </script>
-
-<style scoped lang="scss">
-.headers-editor {
-  width: 100%;
-}
-
-.headers-editor-toolbar {
-  margin-bottom: 8px;
-}
-
-.headers-editor-op-header {
-  width: 100%;
-}
-
-.headers-editor-table {
-  width: 100%;
-}
-
-.headers-editor-text-wrap {
-  width: 100%;
-}
-</style>

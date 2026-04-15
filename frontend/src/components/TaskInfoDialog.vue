@@ -1,113 +1,131 @@
 <template>
-  <el-dialog
+  <UiModal
     :model-value="modelValue"
     title="任务信息"
-    width="560px"
-    append-to-body
-    destroy-on-close
+    width-class="w-full max-w-[560px]"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <div class="task-info-list">
-      <div class="task-info-row">
-        <span class="task-info-label">任务名称</span>
-        <span class="task-info-value">{{ task.name }}</span>
+    <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2.5 text-sm">
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >任务名称</span
+      >
+      <span class="break-all text-[var(--color-text)]">{{ task.name }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >任务状态</span
+      >
+      <span
+        ><UiTag :variant="statusTagType">{{ statusLabel }}</UiTag></span
+      >
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >M3U8 地址</span
+      >
+      <div class="flex min-w-0 flex-wrap items-start gap-2">
+        <span class="min-w-0 flex-1 break-all text-[var(--color-text)]">{{ task.m3u8_url }}</span>
+        <UiButton variant="ghost" size="sm" class="shrink-0 px-1" @click="copyM3u8Url">
+          <Copy class="size-3.5" />
+          复制
+        </UiButton>
       </div>
-      <div class="task-info-row">
-        <span class="task-info-label">任务状态</span>
-        <span class="task-info-value">
-          <el-tag :type="statusTagType">{{ statusLabel }}</el-tag>
-        </span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]">片段</span>
+      <span class="inline-flex flex-wrap items-center gap-1">
+        <span class="text-emerald-600 dark:text-emerald-400">{{ task.downloaded_segments }}</span>
+        <span class="text-[var(--color-text-muted)]">/</span>
+        <span class="text-red-600 dark:text-red-400">{{ task.failed_segments }}</span>
+        <span class="text-[var(--color-text-muted)]">/</span>
+        <span>{{ totalSegmentsDisplay }}</span>
+      </span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >下载目录</span
+      >
+      <span class="break-all">{{ task.download_dir }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >片段并发数</span
+      >
+      <span>{{ task.concurrency }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >速度限制</span
+      >
+      <span>{{ speedLimitDisplay }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >分块大小</span
+      >
+      <span>{{ chunkSizeDisplay }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >代理地址</span
+      >
+      <span>{{ task.proxy || '—' }}</span>
+
+      <span class="self-start text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >请求头</span
+      >
+      <div class="min-w-0 overflow-x-auto">
+        <table
+          v-if="headerEntries.length"
+          class="w-full min-w-[280px] border-collapse overflow-hidden rounded-lg border border-[var(--color-border)] text-xs"
+        >
+          <thead>
+            <tr class="bg-[var(--color-surface-muted)] text-left text-[var(--color-text)]">
+              <th class="border-b border-[var(--color-border)] px-2 py-1.5 font-semibold">键</th>
+              <th class="border-b border-[var(--color-border)] px-2 py-1.5 font-semibold">值</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(row, idx) in headerEntries"
+              :key="idx"
+              class="border-b border-[var(--color-border)] last:border-0"
+            >
+              <td class="max-w-[160px] px-2 py-1.5 align-top break-all">{{ row.key }}</td>
+              <td class="px-2 py-1.5 align-top break-all">{{ row.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <span v-else>—</span>
       </div>
-      <div class="task-info-row">
-        <span class="task-info-label">M3U8 地址</span>
-        <div class="task-info-value task-info-value--with-action">
-          <span class="task-info-url">{{ task.m3u8_url }}</span>
-          <el-button
-            type="primary"
-            link
-            size="small"
-            :icon="CopyDocument"
-            class="task-info-copy-btn"
-            @click="copyM3u8Url"
-          >
-            复制
-          </el-button>
-        </div>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">片段</span>
-        <div class="task-info-value task-info-value--segments">
-          <el-text type="success" size="small">{{ task.downloaded_segments }}</el-text>
-          <span class="task-info-sep">/</span>
-          <el-text type="danger" size="small">{{ task.failed_segments }}</el-text>
-          <span class="task-info-sep">/</span>
-          <el-text size="small">{{ totalSegmentsDisplay }}</el-text>
-        </div>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">下载目录</span>
-        <span class="task-info-value">{{ task.download_dir }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">片段并发数</span>
-        <span class="task-info-value">{{ task.concurrency }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">速度限制</span>
-        <span class="task-info-value">{{ speedLimitDisplay }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">分块大小</span>
-        <span class="task-info-value">{{ chunkSizeDisplay }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">代理地址</span>
-        <span class="task-info-value">{{ task.proxy || '—' }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">请求头</span>
-        <div class="task-info-value task-info-value--headers">
-          <el-table
-            v-if="headerEntries.length"
-            :data="headerEntries"
-            class="task-info-headers-table"
-            size="small"
-            border
-          >
-            <el-table-column prop="key" label="键" width="160" />
-            <el-table-column prop="value" label="值" min-width="220" />
-          </el-table>
-          <span v-else>—</span>
-        </div>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">完成后合并</span>
-        <span class="task-info-value">{{ task.merge_video ? '是' : '否' }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">完成后清理缓存</span>
-        <span class="task-info-value">{{ task.delete_cache ? '是' : '否' }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">视频时长</span>
-        <span class="task-info-value">{{ durationDisplay }}</span>
-      </div>
-      <div class="task-info-row">
-        <span class="task-info-label">创建时间</span>
-        <span class="task-info-value">{{ createdAtDisplay }}</span>
-      </div>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >完成后合并</span
+      >
+      <span>{{ task.merge_video ? '是' : '否' }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >完成后清理缓存</span
+      >
+      <span>{{ task.delete_cache ? '是' : '否' }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >视频时长</span
+      >
+      <span>{{ durationDisplay }}</span>
+
+      <span class="text-right font-semibold whitespace-nowrap text-[var(--color-text)]"
+        >创建时间</span
+      >
+      <span>{{ createdAtDisplay }}</span>
     </div>
     <template #footer>
-      <el-button type="primary" @click="emit('update:modelValue', false)">关闭</el-button>
+      <UiButton variant="primary" @click="emit('update:modelValue', false)">关闭</UiButton>
     </template>
-  </el-dialog>
+  </UiModal>
 </template>
 
 <script setup lang="ts">
+import { Copy } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { CopyDocument } from '@element-plus/icons-vue'
+
+import UiButton from '@/components/ui/UiButton.vue'
+import UiModal from '@/components/ui/UiModal.vue'
+import UiTag from '@/components/ui/UiTag.vue'
 import type { TaskModel, TaskStatus } from '@/types/models'
-import { ElMessage } from 'element-plus'
+import { toast } from '@/utils/toast'
 
 const props = defineProps<{
   modelValue: boolean
@@ -132,19 +150,18 @@ const statusLabel = computed(() => statusLabelMap[props.task.status])
 const statusTagType = computed(() => {
   switch (props.task.status) {
     case 'pending':
-      return 'info'
+      return 'info' as const
     case 'downloading':
-      return 'primary'
     case 'merging':
-      return 'primary'
+      return 'primary' as const
     case 'completed':
-      return 'success'
+      return 'success' as const
     case 'stopped':
-      return 'warning'
+      return 'warning' as const
     case 'failed':
-      return 'danger'
+      return 'danger' as const
     default:
-      return 'info'
+      return 'info' as const
   }
 })
 
@@ -225,88 +242,14 @@ const createdAtDisplay = computed(() => {
 const copyM3u8Url = async () => {
   const url = props.task.m3u8_url
   if (!url) {
-    ElMessage.warning('暂无链接')
+    toast.warning('暂无链接')
     return
   }
   try {
     await navigator.clipboard.writeText(url)
-    ElMessage.success('链接已复制到剪贴板')
+    toast.success('链接已复制到剪贴板')
   } catch {
-    ElMessage.error('复制失败')
+    toast.error('复制失败')
   }
 }
 </script>
-
-<style scoped lang="scss">
-.task-info-list {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  column-gap: 12px;
-  row-gap: 10px;
-  align-items: start;
-  font-size: 13px;
-
-  .task-info-row {
-    display: contents;
-  }
-
-  .task-info-label {
-    color: var(--el-text-color-primary);
-    font-weight: bolder;
-    text-align: right;
-    line-height: 1.5;
-    white-space: nowrap;
-  }
-
-  .task-info-value {
-    color: var(--el-text-color-primary);
-    line-height: 1.5;
-    word-break: break-all;
-
-    &--with-action {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      flex-wrap: wrap;
-
-      .task-info-url {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .task-info-copy-btn {
-        flex-shrink: 0;
-      }
-    }
-
-    &--headers {
-      min-width: 0;
-
-      .task-info-headers-table {
-        width: 100%;
-
-        :deep(.el-table__header-wrapper th.el-table__cell) {
-          background: var(--el-fill-color-light);
-          color: var(--el-text-color-primary);
-        }
-
-        :deep(.el-table__cell .cell) {
-          line-height: 1.45;
-        }
-      }
-    }
-
-    &--segments {
-      display: inline-flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 4px;
-
-      .task-info-sep {
-        color: var(--el-text-color-secondary);
-        user-select: none;
-      }
-    }
-  }
-}
-</style>

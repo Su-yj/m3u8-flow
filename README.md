@@ -155,7 +155,7 @@ uv run pytest
 
 * 加密视频的解密处理
 * 支持 Master Playlist 格式
-* 移动端适配
+* ~~移动端适配~~
 
 ## 许可证
 

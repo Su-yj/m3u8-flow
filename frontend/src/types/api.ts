@@ -4,8 +4,7 @@ export interface ApiResponse<T = unknown> {
   data: T | null
 }
 
-export interface ApiPaginationResponse<T = unknown>
-  extends Omit<ApiResponse<T[]>, 'data'> {
+export interface ApiPaginationResponse<T = unknown> extends Omit<ApiResponse<T[]>, 'data'> {
   total: number
   total_pages: number
   data: T[]

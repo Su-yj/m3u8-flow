@@ -1,35 +1,35 @@
 <template>
-  <div class="login-page">
-    <el-card class="login-card" shadow="always">
-      <template #header>
-        <div class="title">M3U8 Flow 登录</div>
-      </template>
+  <div
+    class="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+  >
+    <div
+      class="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl dark:shadow-[0_0_0_1px_rgba(56,189,248,0.12)]"
+    >
+      <h1 class="mb-6 text-center text-lg font-bold text-[var(--color-text)]">M3U8 Flow 登录</h1>
 
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-        @keyup.enter="onSubmit"
-      >
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" size="large" autocomplete="username" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input
+      <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
+        <UiFormRow label="用户名" :error="errors.username">
+          <UiInput
+            v-model="form.username"
+            autocomplete="username"
+            placeholder="用户名"
+            @blur="clearFieldError('username')"
+          />
+        </UiFormRow>
+        <UiFormRow label="密码" :error="errors.password">
+          <UiInput
             v-model="form.password"
             type="password"
-            show-password
             autocomplete="current-password"
-            size="large"
+            placeholder="密码"
+            @blur="clearFieldError('password')"
           />
-        </el-form-item>
-
-        <el-button type="primary" :loading="loading" class="submit" size="large" @click="onSubmit">
+        </UiFormRow>
+        <UiButton type="submit" variant="primary" size="lg" block :loading="loading" class="mt-2">
           登录
-        </el-button>
-      </el-form>
-    </el-card>
+        </UiButton>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -37,13 +37,17 @@
 defineOptions({ name: 'LoginView' })
 
 import axios from 'axios'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDark } from '@vueuse/core'
 
-import type { ApiResponse } from '@/types/api'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiFormRow from '@/components/ui/UiFormRow.vue'
+import UiInput from '@/components/ui/UiInput.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { ApiResponse } from '@/types/api'
+import { toast } from '@/utils/toast'
+import { validateModel } from '@/utils/formValidate'
 
 interface Token {
   access_token: string
@@ -55,7 +59,6 @@ const router = useRouter()
 useDark()
 const authStore = useAuthStore()
 
-const formRef = ref<FormInstance>()
 const loading = ref(false)
 
 const form = reactive({
@@ -63,14 +66,28 @@ const form = reactive({
   password: '',
 })
 
-const rules: FormRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+const errors = reactive({
+  username: '',
+  password: '',
+})
+
+function clearFieldError(key: 'username' | 'password') {
+  errors[key] = ''
 }
 
 async function onSubmit() {
-  const ok = await formRef.value?.validate().catch(() => false)
-  if (!ok) return
+  const r = validateModel(form, {
+    username: [{ required: true, message: '请输入用户名' }],
+    password: [{ required: true, message: '请输入密码' }],
+  })
+  errors.username = ''
+  errors.password = ''
+  if (!r.valid) {
+    const msg = r.message
+    if (msg.includes('用户名')) errors.username = msg
+    else if (msg.includes('密码')) errors.password = msg
+    return
+  }
 
   loading.value = true
   try {
@@ -88,7 +105,7 @@ async function onSubmit() {
 
     authStore.setTokens(data.data.access_token, data.data.refresh_token)
 
-    ElMessage.success('登录成功')
+    toast.success('登录成功')
     await router.replace({ name: 'download-manage' })
   } catch (e) {
     let msg = ''
@@ -107,45 +124,9 @@ async function onSubmit() {
     } else {
       msg = e instanceof Error ? e.message : '登录失败'
     }
-    ElMessage.error(msg || '登录失败')
+    toast.error(msg || '登录失败')
   } finally {
     loading.value = false
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.login-page {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 40%, #f8fafc 100%);
-  html.dark & {
-    background:
-      radial-gradient(
-        1200px 600px at 20% 10%,
-        rgba(64, 158, 255, 0.14) 0%,
-        rgba(64, 158, 255, 0) 55%
-      ),
-      linear-gradient(135deg, #0b1220 0%, #0f172a 45%, #0b1220 100%) !important;
-  }
-}
-
-.login-card {
-  width: 420px;
-  max-width: 100%;
-
-  .title {
-    font-size: 18px;
-    font-weight: 700;
-    text-align: center;
-  }
-
-  .submit {
-    width: 100%;
-  }
-}
-</style>

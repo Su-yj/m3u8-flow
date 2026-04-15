@@ -1,75 +1,92 @@
 <template>
-  <el-dialog v-model="dialogVisible" title="编辑任务" width="720px" destroy-on-close>
-    <el-form
-      ref="editFormRef"
-      :model="editForm"
-      :rules="editRules"
-      label-width="130px"
-      @submit.prevent
-    >
-      <el-form-item label="任务名称">
-        <el-input v-model="editForm.name" disabled />
-      </el-form-item>
-      <el-form-item label="M3U8 地址">
-        <el-input v-model="editForm.m3u8_url" disabled />
-      </el-form-item>
-      <el-form-item label="下载目录">
-        <el-input v-model="editForm.download_dir" disabled />
-      </el-form-item>
-      <el-form-item label="片段并发数" prop="concurrency">
-        <el-input-number v-model="editForm.concurrency" :min="1" :max="64" />
-      </el-form-item>
-      <el-form-item label="速度限制">
-        <el-input-number
-          v-model="editForm.speed_limit_value"
-          :min="0.01"
-          :step="1"
-          :precision="2"
-        />
-        <el-select v-model="editForm.speed_limit_unit" class="unit-select">
-          <el-option label="KB/s" value="KB" />
-          <el-option label="MB/s" value="MB" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="分块大小">
-        <el-input-number
-          v-model="editForm.chunk_size_value"
-          :min="0.01"
-          :step="1"
-          :precision="2"
-        />
-        <el-select v-model="editForm.chunk_size_unit" class="unit-select">
-          <el-option label="KB" value="KB" />
-          <el-option label="MB" value="MB" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="代理地址">
-        <el-input v-model="editForm.proxy" clearable placeholder="例如：http://127.0.0.1:7890" />
-      </el-form-item>
-      <el-form-item label="请求头" prop="headers_json">
+  <UiModal v-model="dialogVisible" title="编辑任务" width-class="w-full max-w-[720px]">
+    <form class="flex flex-col gap-4" @submit.prevent="submitEdit">
+      <UiFormRow label="任务名称">
+        <UiInput v-model="editForm.name" disabled />
+      </UiFormRow>
+      <UiFormRow label="M3U8 地址">
+        <UiInput v-model="editForm.m3u8_url" disabled />
+      </UiFormRow>
+      <UiFormRow label="下载目录">
+        <UiInput v-model="editForm.download_dir" disabled />
+      </UiFormRow>
+      <UiFormRow label="片段并发数">
+        <UiNumberInput v-model="editForm.concurrency" :min="1" :max="64" />
+      </UiFormRow>
+      <UiFormRow label="速度限制">
+        <div class="flex flex-wrap items-center gap-2">
+          <UiNumberInput
+            v-model="editForm.speed_limit_value"
+            class="min-w-[8rem] flex-1"
+            :min="0.01"
+            :step="0.01"
+            :precision="2"
+            placeholder="不限速"
+          />
+          <UiSelect
+            v-model="editForm.speed_limit_unit"
+            :options="[
+              { label: 'KB/s', value: 'KB' },
+              { label: 'MB/s', value: 'MB' },
+            ]"
+          />
+        </div>
+      </UiFormRow>
+      <UiFormRow label="分块大小">
+        <div class="flex flex-wrap items-center gap-2">
+          <UiNumberInput
+            v-model="editForm.chunk_size_value"
+            class="min-w-[8rem] flex-1"
+            :min="0.01"
+            :step="0.01"
+            :precision="2"
+            placeholder="默认"
+          />
+          <UiSelect
+            v-model="editForm.chunk_size_unit"
+            :options="[
+              { label: 'KB', value: 'KB' },
+              { label: 'MB', value: 'MB' },
+            ]"
+          />
+        </div>
+      </UiFormRow>
+      <UiFormRow label="代理地址">
+        <UiInput v-model="proxyStr" placeholder="例如：http://127.0.0.1:7890" />
+      </UiFormRow>
+      <UiFormRow label="请求头">
         <HeadersEditor ref="headersEditorRef" v-model="editForm.headers_json" />
-      </el-form-item>
-      <el-form-item label="完成后合并">
-        <el-switch v-model="editForm.merge_video" disabled />
-      </el-form-item>
-      <el-form-item label="完成后清理缓存">
-        <el-switch v-model="editForm.delete_cache" disabled />
-      </el-form-item>
-    </el-form>
+      </UiFormRow>
+      <UiFormRow label="完成后合并">
+        <UiSwitch v-model="editForm.merge_video" disabled />
+      </UiFormRow>
+      <UiFormRow label="完成后清理缓存">
+        <UiSwitch v-model="editForm.delete_cache" disabled />
+      </UiFormRow>
+    </form>
     <template #footer>
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="submitLoading" @click="submitEdit">确认修改</el-button>
+      <UiButton variant="secondary" @click="dialogVisible = false">取消</UiButton>
+      <UiButton variant="primary" :loading="submitLoading" @click="submitEdit">确认修改</UiButton>
     </template>
-  </el-dialog>
+  </UiModal>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import axios from 'axios'
+
 import HeadersEditor from '@/components/HeadersEditor.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiFormRow from '@/components/ui/UiFormRow.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiModal from '@/components/ui/UiModal.vue'
+import UiNumberInput from '@/components/ui/UiNumberInput.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
 import type { ApiResponse } from '@/types/api'
 import type { TaskModel } from '@/types/models'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { headersJsonRule, validateModel } from '@/utils/formValidate'
+import { toast } from '@/utils/toast'
 
 const props = defineProps<{
   modelValue: boolean
@@ -101,7 +118,6 @@ type EditTaskFormModel = {
 }
 
 const submitLoading = ref(false)
-const editFormRef = ref<FormInstance>()
 const headersEditorRef = ref<InstanceType<typeof HeadersEditor> | null>(null)
 const editForm = ref<EditTaskFormModel>({
   name: '',
@@ -118,30 +134,12 @@ const editForm = ref<EditTaskFormModel>({
   delete_cache: true,
 })
 
-const editRules: FormRules<EditTaskFormModel> = {
-  concurrency: [{ required: true, message: '请输入片段并发数', trigger: 'blur' }],
-  headers_json: [
-    {
-      validator: (_rule, value: string, callback) => {
-        if (!value.trim()) {
-          callback()
-          return
-        }
-        try {
-          const parsed = JSON.parse(value)
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            callback()
-            return
-          }
-          callback(new Error('请求头必须是 JSON 对象'))
-        } catch {
-          callback(new Error('请求头 JSON 格式不正确'))
-        }
-      },
-      trigger: 'blur',
-    },
-  ],
-}
+const proxyStr = computed({
+  get: () => editForm.value.proxy ?? '',
+  set: (v: string) => {
+    editForm.value.proxy = v.trim() ? v : null
+  },
+})
 
 const BYTES_IN_KB = 1024
 const BYTES_IN_MB = 1024 * 1024
@@ -187,8 +185,15 @@ const hydrateFormFromTask = (task: TaskModel) => {
 const submitEdit = async () => {
   headersEditorRef.value?.flush()
   await nextTick()
-  const valid = await editFormRef.value?.validate().catch(() => false)
-  if (!valid) return
+
+  const r = validateModel(editForm.value as unknown as Record<string, unknown>, {
+    concurrency: [{ required: true, message: '请输入片段并发数' }],
+    headers_json: [headersJsonRule()],
+  })
+  if (!r.valid) {
+    toast.error(r.message)
+    return
+  }
 
   let headers: Record<string, string> | null = null
   if (editForm.value.headers_json.trim()) {
@@ -199,21 +204,24 @@ const submitEdit = async () => {
   try {
     const payload = {
       concurrency: editForm.value.concurrency,
-      speed_limit: displayToBytes(editForm.value.speed_limit_value, editForm.value.speed_limit_unit),
+      speed_limit: displayToBytes(
+        editForm.value.speed_limit_value,
+        editForm.value.speed_limit_unit,
+      ),
       chunk_size: displayToBytes(editForm.value.chunk_size_value, editForm.value.chunk_size_unit),
       proxy: editForm.value.proxy?.trim() || null,
       headers,
     }
     const response = await axios.put<ApiResponse>(`/api/tasks/${props.task.id}`, payload)
     if (response.status === 200 && response.data.code === 0) {
-      ElMessage.success('任务配置已更新')
+      toast.success('任务配置已更新')
       dialogVisible.value = false
       return
     }
-    ElMessage.error(response.data.message || '更新任务配置失败')
+    toast.error(response.data.message || '更新任务配置失败')
   } catch (error) {
     console.error(error)
-    ElMessage.error('更新任务配置失败')
+    toast.error('更新任务配置失败')
   } finally {
     submitLoading.value = false
   }
@@ -224,22 +232,10 @@ watch(
   async (visible) => {
     if (visible) {
       hydrateFormFromTask(props.task)
-      await nextTick()
-      editFormRef.value?.clearValidate()
       return
     }
     submitLoading.value = false
-    await nextTick()
-    editFormRef.value?.clearValidate()
   },
   { immediate: true },
 )
 </script>
-
-<style scoped lang="scss">
-.unit-select {
-  margin-left: 8px;
-  width: 100px;
-}
-</style>
-

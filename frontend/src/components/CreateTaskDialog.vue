@@ -1,75 +1,94 @@
 <template>
-  <el-dialog v-model="dialogVisible" title="添加任务" width="720px" destroy-on-close>
-    <el-form
-      ref="createFormRef"
-      :model="createForm"
-      :rules="createRules"
-      label-width="130px"
-      @submit.prevent
-    >
-      <el-form-item label="任务名称" prop="name">
-        <el-input v-model="createForm.name" placeholder="请输入任务名称" />
-      </el-form-item>
-      <el-form-item label="M3U8 地址" prop="m3u8_url">
-        <el-input v-model="createForm.m3u8_url" placeholder="请输入 m3u8 URL" />
-      </el-form-item>
-      <el-form-item label="下载目录" prop="download_dir">
-        <el-input v-model="createForm.download_dir" placeholder="例如：downloads" />
-      </el-form-item>
-      <el-form-item label="片段并发数" prop="concurrency">
-        <el-input-number v-model="createForm.concurrency" :min="1" :max="64" />
-      </el-form-item>
-      <el-form-item label="速度限制">
-        <el-input-number
-          v-model="createForm.speed_limit_value"
-          :min="0.01"
-          :step="1"
-          :precision="2"
-        />
-        <el-select v-model="createForm.speed_limit_unit" class="unit-select">
-          <el-option label="KB/s" value="KB" />
-          <el-option label="MB/s" value="MB" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="分块大小">
-        <el-input-number
-          v-model="createForm.chunk_size_value"
-          :min="0.01"
-          :step="1"
-          :precision="2"
-        />
-        <el-select v-model="createForm.chunk_size_unit" class="unit-select">
-          <el-option label="KB" value="KB" />
-          <el-option label="MB" value="MB" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="代理地址">
-        <el-input v-model="createForm.proxy" clearable placeholder="例如：http://127.0.0.1:7890" />
-      </el-form-item>
-      <el-form-item label="请求头" prop="headers_json">
+  <UiModal v-model="dialogVisible" title="添加任务" width-class="w-full max-w-[720px]">
+    <form class="flex flex-col gap-4" @submit.prevent="submitCreateTask">
+      <UiFormRow label="任务名称">
+        <UiInput v-model="createForm.name" placeholder="请输入任务名称" />
+      </UiFormRow>
+      <UiFormRow label="M3U8 地址">
+        <UiInput v-model="createForm.m3u8_url" placeholder="请输入 m3u8 URL" />
+      </UiFormRow>
+      <UiFormRow label="下载目录">
+        <UiInput v-model="createForm.download_dir" placeholder="例如：downloads" />
+      </UiFormRow>
+      <UiFormRow label="片段并发数">
+        <UiNumberInput v-model="createForm.concurrency" :min="1" :max="64" />
+      </UiFormRow>
+      <UiFormRow label="速度限制">
+        <div class="flex flex-wrap items-center gap-2">
+          <UiNumberInput
+            v-model="createForm.speed_limit_value"
+            class="min-w-[8rem] flex-1"
+            :min="0.01"
+            :step="0.01"
+            :precision="2"
+            placeholder="不限速"
+          />
+          <UiSelect
+            v-model="createForm.speed_limit_unit"
+            :options="[
+              { label: 'KB/s', value: 'KB' },
+              { label: 'MB/s', value: 'MB' },
+            ]"
+          />
+        </div>
+      </UiFormRow>
+      <UiFormRow label="分块大小">
+        <div class="flex flex-wrap items-center gap-2">
+          <UiNumberInput
+            v-model="createForm.chunk_size_value"
+            class="min-w-[8rem] flex-1"
+            :min="0.01"
+            :step="0.01"
+            :precision="2"
+            placeholder="默认"
+          />
+          <UiSelect
+            v-model="createForm.chunk_size_unit"
+            :options="[
+              { label: 'KB', value: 'KB' },
+              { label: 'MB', value: 'MB' },
+            ]"
+          />
+        </div>
+      </UiFormRow>
+      <UiFormRow label="代理地址">
+        <UiInput v-model="proxyStr" placeholder="例如：http://127.0.0.1:7890" />
+      </UiFormRow>
+      <UiFormRow label="请求头">
         <HeadersEditor ref="headersEditorRef" v-model="createForm.headers_json" />
-      </el-form-item>
-      <el-form-item label="完成后合并">
-        <el-switch v-model="createForm.merge_video" />
-      </el-form-item>
-      <el-form-item label="完成后清理缓存">
-        <el-switch v-model="createForm.delete_cache" />
-      </el-form-item>
-    </el-form>
+      </UiFormRow>
+      <UiFormRow label="完成后合并">
+        <UiSwitch v-model="createForm.merge_video" />
+      </UiFormRow>
+      <UiFormRow label="完成后清理缓存">
+        <UiSwitch v-model="createForm.delete_cache" />
+      </UiFormRow>
+    </form>
     <template #footer>
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="createLoading" @click="submitCreateTask">创建任务</el-button>
+      <UiButton variant="secondary" @click="dialogVisible = false">取消</UiButton>
+      <UiButton variant="primary" :loading="createLoading" @click="submitCreateTask"
+        >创建任务</UiButton
+      >
     </template>
-  </el-dialog>
+  </UiModal>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import axios from 'axios'
-import type { ApiResponse } from '@/types/api'
+
 import HeadersEditor from '@/components/HeadersEditor.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiFormRow from '@/components/ui/UiFormRow.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiModal from '@/components/ui/UiModal.vue'
+import UiNumberInput from '@/components/ui/UiNumberInput.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
+import type { ApiResponse } from '@/types/api'
 import type { GlobalConfigModel, TaskModel } from '@/types/models'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { headersJsonRule, validateModel } from '@/utils/formValidate'
+import { toast } from '@/utils/toast'
 
 const props = defineProps<{
   modelValue: boolean
@@ -85,7 +104,6 @@ const dialogVisible = computed({
 })
 
 const createLoading = ref(false)
-const createFormRef = ref<FormInstance>()
 const headersEditorRef = ref<InstanceType<typeof HeadersEditor> | null>(null)
 
 type CreateTaskFormModel = {
@@ -119,33 +137,12 @@ const buildCreateFormDefaults = (): CreateTaskFormModel => ({
 })
 const createForm = ref<CreateTaskFormModel>(buildCreateFormDefaults())
 
-const createRules: FormRules<CreateTaskFormModel> = {
-  name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
-  m3u8_url: [{ required: true, message: '请输入 m3u8 URL', trigger: 'blur' }],
-  download_dir: [{ required: true, message: '请输入下载目录', trigger: 'blur' }],
-  concurrency: [{ required: true, message: '请输入片段并发数', trigger: 'blur' }],
-  headers_json: [
-    {
-      validator: (_rule, value: string, callback) => {
-        if (!value.trim()) {
-          callback()
-          return
-        }
-        try {
-          const parsed = JSON.parse(value)
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            callback()
-            return
-          }
-          callback(new Error('请求头必须是 JSON 对象'))
-        } catch {
-          callback(new Error('请求头 JSON 格式不正确'))
-        }
-      },
-      trigger: 'blur',
-    },
-  ],
-}
+const proxyStr = computed({
+  get: () => createForm.value.proxy ?? '',
+  set: (v: string) => {
+    createForm.value.proxy = v.trim() ? v : null
+  },
+})
 
 const BYTES_IN_KB = 1024
 const BYTES_IN_MB = 1024 * 1024
@@ -193,7 +190,7 @@ const fetchGlobalConfigDefaults = async () => {
     }
   } catch (error) {
     console.error(error)
-    ElMessage.error('加载全局配置默认值失败')
+    toast.error('加载全局配置默认值失败')
   }
 }
 
@@ -204,8 +201,16 @@ const resetCreateForm = () => {
 const submitCreateTask = async () => {
   headersEditorRef.value?.flush()
   await nextTick()
-  const valid = await createFormRef.value?.validate().catch(() => false)
-  if (!valid) {
+
+  const r = validateModel(createForm.value as unknown as Record<string, unknown>, {
+    name: [{ required: true, message: '请输入任务名称' }],
+    m3u8_url: [{ required: true, message: '请输入 m3u8 URL' }],
+    download_dir: [{ required: true, message: '请输入下载目录' }],
+    concurrency: [{ required: true, message: '请输入片段并发数' }],
+    headers_json: [headersJsonRule()],
+  })
+  if (!r.valid) {
+    toast.error(r.message)
     return
   }
 
@@ -221,8 +226,14 @@ const submitCreateTask = async () => {
       m3u8_url: createForm.value.m3u8_url.trim(),
       download_dir: createForm.value.download_dir.trim(),
       concurrency: createForm.value.concurrency,
-      speed_limit: displayToBytes(createForm.value.speed_limit_value, createForm.value.speed_limit_unit),
-      chunk_size: displayToBytes(createForm.value.chunk_size_value, createForm.value.chunk_size_unit),
+      speed_limit: displayToBytes(
+        createForm.value.speed_limit_value,
+        createForm.value.speed_limit_unit,
+      ),
+      chunk_size: displayToBytes(
+        createForm.value.chunk_size_value,
+        createForm.value.chunk_size_unit,
+      ),
       proxy: createForm.value.proxy?.trim() || null,
       headers,
       merge_video: createForm.value.merge_video,
@@ -230,14 +241,14 @@ const submitCreateTask = async () => {
     }
     const response = await axios.post<ApiResponse<TaskModel>>('/api/tasks/', payload)
     if (response.status === 200) {
-      ElMessage.success('任务创建成功')
+      toast.success('任务创建成功')
       dialogVisible.value = false
       return
     }
-    ElMessage.error(response.data.message || '任务创建失败')
+    toast.error(response.data.message || '任务创建失败')
   } catch (error) {
     console.error(error)
-    ElMessage.error('任务创建失败')
+    toast.error('任务创建失败')
   } finally {
     createLoading.value = false
   }
@@ -249,21 +260,10 @@ watch(
     if (visible) {
       resetCreateForm()
       await fetchGlobalConfigDefaults()
-      await nextTick()
-      createFormRef.value?.clearValidate()
       return
     }
     createLoading.value = false
-    await nextTick()
-    createFormRef.value?.clearValidate()
   },
   { immediate: true },
 )
 </script>
-
-<style scoped lang="scss">
-.unit-select {
-  margin-left: 8px;
-  width: 100px;
-}
-</style>

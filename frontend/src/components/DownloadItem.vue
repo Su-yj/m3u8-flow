@@ -1,9 +1,16 @@
 <template>
-  <div class="download-item">
-    <div class="item-header">
-      <div class="task-name" :title="task.name">{{ task.name }}</div>
-      <div class="header-right">
-        <div class="header-actions">
+  <div
+    class="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[0_3px_10px_rgba(0,0,0,0.04)] dark:shadow-[0_3px_10px_rgba(0,0,0,0.2)]"
+  >
+    <div class="mb-2.5 flex items-center justify-between gap-3">
+      <div
+        class="min-w-0 truncate text-base font-semibold text-emerald-600 dark:text-emerald-400"
+        :title="task.name"
+      >
+        {{ task.name }}
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <div class="flex flex-wrap items-center gap-1">
           <i
             v-if="showStart"
             class="iconfont icon-play action-icon action-icon--start"
@@ -56,42 +63,44 @@
             @keydown.space.prevent="openDeleteDialog"
           />
         </div>
-        <el-tag :type="statusTagType" effect="dark">{{ statusLabel }}</el-tag>
+        <UiTag :variant="statusTagType" effect="solid">{{ statusLabel }}</UiTag>
       </div>
     </div>
 
-    <div class="item-meta">
-      <div class="item-meta-start">
-        <el-icon
-          class="task-info-trigger"
-          :size="18"
+    <div
+      class="mb-2.5 flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]"
+    >
+      <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          class="shrink-0 cursor-pointer rounded text-brand-600 transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none dark:text-brand-400"
           aria-label="查看创建任务时的信息"
-          role="button"
-          tabindex="0"
           @click="taskInfoDialogVisible = true"
-          @keydown.enter.prevent="taskInfoDialogVisible = true"
-          @keydown.space.prevent="taskInfoDialogVisible = true"
         >
-          <InfoFilled />
-        </el-icon>
+          <Info class="size-[18px]" />
+        </button>
         <span>已下载 {{ downloadedSizeText }}</span>
-        <span class="item-meta-duration">时长 {{ durationDisplay }}</span>
+        <span class="ml-0.5 border-l border-[var(--color-border)] pl-2 whitespace-nowrap"
+          >时长 {{ durationDisplay }}</span
+        >
       </div>
-      <span>速度 {{ speedText }}</span>
+      <span class="whitespace-nowrap">速度 {{ speedText }}</span>
     </div>
 
-    <el-progress :percentage="progressValue" :stroke-width="10" :show-text="false" />
+    <UiProgress :percentage="progressValue" :height="10" />
 
-    <div class="item-footer">
+    <div
+      class="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]"
+    >
       <span>进度 {{ progressValue.toFixed(1) }}%</span>
-      <span class="item-footer-segments">
+      <span class="inline-flex min-w-0 flex-wrap items-center gap-1">
         <span>片段：</span>
-        <span class="task-info-value task-info-value--segments">
-          <el-text type="success" size="small">{{ task.downloaded_segments }}</el-text>
-          <span class="task-info-sep">/</span>
-          <el-text type="danger" size="small">{{ task.failed_segments }}</el-text>
-          <span class="task-info-sep">/</span>
-          <el-text size="small">{{ totalSegmentsDisplay }}</el-text>
+        <span class="inline-flex flex-wrap items-center gap-1">
+          <span class="text-emerald-600 dark:text-emerald-400">{{ task.downloaded_segments }}</span>
+          <span class="text-[var(--color-text-muted)]">/</span>
+          <span class="text-red-600 dark:text-red-400">{{ task.failed_segments }}</span>
+          <span class="text-[var(--color-text-muted)]">/</span>
+          <span>{{ totalSegmentsDisplay }}</span>
         </span>
       </span>
     </div>
@@ -99,37 +108,43 @@
     <TaskInfoDialog v-model="taskInfoDialogVisible" :task="task" />
     <EditTaskDialog v-model="editDialogVisible" :task="task" />
 
-    <el-dialog
+    <UiModal
       v-model="deleteDialogVisible"
       title="删除任务"
-      width="440px"
-      destroy-on-close
-      append-to-body
-      @closed="resetDeleteOptions"
+      width-class="w-full max-w-[440px]"
+      @update:model-value="onDeleteDialogClose"
     >
-      <p class="delete-hint">请选择是否同时删除本地文件（删除后不可恢复）。</p>
-      <div class="delete-checks">
-        <el-checkbox v-model="deleteCacheChecked">删除缓存片段（.cache 目录）</el-checkbox>
-        <el-checkbox v-model="deleteMergedChecked">删除合并后的视频及任务下载目录</el-checkbox>
+      <p class="mb-3 text-sm text-[var(--color-text-muted)]">
+        请选择是否同时删除本地文件（删除后不可恢复）。
+      </p>
+      <div class="flex flex-col gap-2">
+        <UiCheckbox v-model="deleteCacheChecked">删除缓存片段（.cache 目录）</UiCheckbox>
+        <UiCheckbox v-model="deleteMergedChecked">删除合并后的视频及任务下载目录</UiCheckbox>
       </div>
       <template #footer>
-        <el-button @click="deleteDialogVisible = false">取消</el-button>
-        <el-button type="danger" :loading="deleteLoading" @click="confirmDelete"
-          >确定删除</el-button
+        <UiButton variant="secondary" @click="deleteDialogVisible = false">取消</UiButton>
+        <UiButton variant="danger" :loading="deleteLoading" @click="confirmDelete"
+          >确定删除</UiButton
         >
       </template>
-    </el-dialog>
+    </UiModal>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Info } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import axios from 'axios'
-import { InfoFilled } from '@element-plus/icons-vue'
-import TaskInfoDialog from '@/components/TaskInfoDialog.vue'
+
 import EditTaskDialog from '@/components/EditTaskDialog.vue'
+import TaskInfoDialog from '@/components/TaskInfoDialog.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiCheckbox from '@/components/ui/UiCheckbox.vue'
+import UiModal from '@/components/ui/UiModal.vue'
+import UiProgress from '@/components/ui/UiProgress.vue'
+import UiTag from '@/components/ui/UiTag.vue'
 import type { TaskModel, TaskStatus } from '@/types/models'
-import { ElMessage } from 'element-plus'
+import { toast } from '@/utils/toast'
 
 const props = defineProps<{
   task: TaskModel
@@ -168,15 +183,21 @@ const openDeleteDialog = () => {
   deleteDialogVisible.value = true
 }
 
+function onDeleteDialogClose(open: boolean) {
+  if (!open) {
+    resetDeleteOptions()
+  }
+}
+
 const handleStart = async () => {
   if (startLoading.value) return
   startLoading.value = true
   try {
     await axios.post(`/api/tasks/${props.task.id}/start`)
-    ElMessage.success('任务已加入队列')
+    toast.success('任务已加入队列')
   } catch (error) {
     console.error(error)
-    ElMessage.error('开始任务失败')
+    toast.error('开始任务失败')
   } finally {
     startLoading.value = false
   }
@@ -187,10 +208,10 @@ const handleStop = async () => {
   stopLoading.value = true
   try {
     await axios.post(`/api/tasks/${props.task.id}/stop`)
-    ElMessage.success('任务已暂停')
+    toast.success('任务已暂停')
   } catch (error) {
     console.error(error)
-    ElMessage.error('暂停任务失败')
+    toast.error('暂停任务失败')
   } finally {
     stopLoading.value = false
   }
@@ -210,11 +231,11 @@ const confirmDelete = async () => {
         delete_downloaded_files: deleteMergedChecked.value,
       },
     })
-    ElMessage.success('任务已删除')
+    toast.success('任务已删除')
     deleteDialogVisible.value = false
   } catch (error) {
     console.error(error)
-    ElMessage.error('删除任务失败')
+    toast.error('删除任务失败')
   } finally {
     deleteLoading.value = false
   }
@@ -234,7 +255,6 @@ const statusTagType = computed(() => {
     case 'pending':
       return 'info'
     case 'downloading':
-      return 'primary'
     case 'merging':
       return 'primary'
     case 'completed':
@@ -305,168 +325,38 @@ const totalSegmentsDisplay = computed(() => {
 })
 </script>
 
-<style scoped lang="scss">
-.download-item {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 10px;
-  padding: 14px 16px;
-  background: var(--el-fill-color-blank);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
-
-  .item-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
-
-    .task-name {
-      font-size: 16px;
-      color: #32a637;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-
-      .header-actions {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 4px;
-
-        .action-icon {
-          font-size: 18px;
-          line-height: 1;
-          padding: 4px;
-          border-radius: 6px;
-          cursor: pointer;
-          user-select: none;
-          transition: opacity 0.15s ease;
-
-          &:focus-visible {
-            outline: 2px solid var(--el-color-primary);
-            outline-offset: 2px;
-          }
-
-          &:hover:not(.is-loading) {
-            opacity: 0.88;
-          }
-
-          &.is-loading {
-            opacity: 0.45;
-            cursor: wait;
-            pointer-events: none;
-          }
-
-          &.action-icon--start {
-            color: var(--el-color-success);
-          }
-
-          &.action-icon--pause {
-            color: var(--el-color-warning);
-          }
-
-          &.action-icon--edit {
-            color: var(--el-color-primary);
-          }
-
-          &.action-icon--delete {
-            color: var(--el-color-danger);
-          }
-        }
-      }
-    }
-  }
-
-  .item-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 10px;
-
-    .item-meta-start {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 0;
-      flex-wrap: wrap;
-    }
-
-    .item-meta-duration {
-      padding-left: 8px;
-      margin-left: 2px;
-      border-left: 1px solid var(--el-border-color-lighter);
-      white-space: nowrap;
-    }
-
-    .task-info-trigger {
-      flex-shrink: 0;
-      cursor: pointer;
-      color: var(--el-color-primary);
-      transition: opacity 0.15s ease;
-
-      &:hover {
-        opacity: 0.85;
-      }
-
-      &:focus-visible {
-        outline: 2px solid var(--el-color-primary);
-        outline-offset: 2px;
-        border-radius: 4px;
-      }
-    }
-  }
-
-  .item-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-
-    .item-footer-segments {
-      display: inline-flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0;
-      min-width: 0;
-    }
-
-    .task-info-value--segments {
-      display: inline-flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .task-info-sep {
-      color: var(--el-text-color-secondary);
-      user-select: none;
-    }
-  }
+<style scoped>
+.action-icon {
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease;
 }
-
-.delete-hint {
-  margin: 0 0 12px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
+.action-icon:focus-visible {
+  outline: 2px solid var(--color-brand-500, #2563eb);
+  outline-offset: 2px;
 }
-
-.delete-checks {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.action-icon:hover:not(.is-loading) {
+  opacity: 0.88;
+}
+.action-icon.is-loading {
+  opacity: 0.45;
+  cursor: wait;
+  pointer-events: none;
+}
+.action-icon--start {
+  color: #16a34a;
+}
+.action-icon--pause {
+  color: #d97706;
+}
+.action-icon--edit {
+  color: #2563eb;
+}
+.action-icon--delete {
+  color: #dc2626;
 }
 </style>

@@ -1,74 +1,32 @@
-<template>
-  <el-container class="app">
-    <el-aside width="256px" class="aside">
-      <div class="aside-content">
-        <h1 class="brand-logo">
-          <img class="brand-logo__mark" src="/favicon.svg" width="40" height="40" alt="" />
-          <span class="brand-logo__text">
-            <span class="brand-logo__line brand-logo__line--top">M3U8</span>
-            <span class="brand-logo__line brand-logo__line--bottom">FLOW</span>
-          </span>
-        </h1>
-        <el-menu router>
-          <el-menu-item index="/" :route="{ name: 'download-manage' }">
-            <el-icon><Download /></el-icon>
-            <span>下载管理</span>
-          </el-menu-item>
-          <el-menu-item index="/completed" :route="{ name: 'completed' }">
-            <el-icon><CircleCheck /></el-icon>
-            <span>已完成</span>
-          </el-menu-item>
-          <el-menu-item index="/global-config" :route="{ name: 'global-config' }">
-            <el-icon><Setting /></el-icon>
-            <span>全局设置</span>
-          </el-menu-item>
-        </el-menu>
-        <el-divider />
-        <div class="theme-switch">
-          <el-form>
-            <el-form-item label="主题">
-              <el-switch
-                v-model="isDark"
-                size="large"
-                inline-prompt
-                style="--el-switch-on-color: #2c2c2c; --el-switch-off-color: #f2f2f2"
-              >
-                <template #active-action>
-                  <el-icon color="#D0D3DC"><Moon /></el-icon>
-                </template>
-                <template #inactive-action>
-                  <el-icon color="#606266"><Sunny /></el-icon>
-                </template>
-              </el-switch>
-            </el-form-item>
-          </el-form>
-        </div>
-      </div>
-      <div v-if="authStore.accessToken" class="aside-footer">
-        <el-button type="danger" link @click="logout">退出</el-button>
-      </div>
-    </el-aside>
-    <el-main>
-      <router-view />
-    </el-main>
-  </el-container>
-</template>
-
 <script setup lang="ts">
-import { useDark } from '@vueuse/core'
-import { CircleCheck, Download, Moon, Setting, Sunny } from '@element-plus/icons-vue'
+import { useDark, useMediaQuery } from '@vueuse/core'
+import { CircleCheck, Download, Moon, Settings, Sun } from 'lucide-vue-next'
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
+import UiButton from '@/components/ui/UiButton.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const isDark = useDark()
+const isDesktop = useMediaQuery('(min-width: 768px)')
 
-const actionColor = computed(() => {
-  return isDark.value ? '#2C2C2C' : '#F2F2F2'
-})
+const activeDownload = computed(() => route.name === 'download-manage')
+const activeCompleted = computed(() => route.name === 'completed')
+const activeConfig = computed(() => route.name === 'global-config')
+
+function navClass(active: boolean) {
+  return active
+    ? 'bg-brand-100 text-brand-500 dark:bg-brand-500 dark:text-brand-100'
+    : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]'
+}
+
+function tabClass(active: boolean) {
+  return active ? 'text-brand-600 dark:text-brand-400' : 'text-[var(--color-text-muted)]'
+}
 
 async function logout() {
   authStore.clearTokens()
@@ -76,115 +34,121 @@ async function logout() {
 }
 </script>
 
-<style scoped lang="scss">
-.app {
-  height: 100%;
-  width: 100%;
-  .el-aside.aside {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 16px;
-    box-sizing: border-box;
-    box-shadow: 6px 0 18px rgba(0, 0, 0, 0.1);
-    z-index: 1;
+<template>
+  <div class="flex h-full min-h-0 w-full bg-[var(--color-surface)] text-[var(--color-text)]">
+    <!-- 桌面侧栏 -->
+    <aside
+      v-if="isDesktop"
+      class="flex w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-muted)] shadow-[6px_0_18px_rgba(0,0,0,0.06)] dark:shadow-[6px_0_18px_rgba(0,0,0,0.25)]"
+    >
+      <div class="min-h-0 flex-1 overflow-auto p-4">
+        <h1 class="mb-2 flex items-center justify-center gap-3 py-1">
+          <img
+            class="size-10 shrink-0 rounded-[10px] shadow-md ring-1 ring-slate-300/50 dark:shadow-[0_2px_14px_rgba(29,78,216,0.35)] dark:ring-sky-500/30"
+            src="/favicon.svg"
+            width="40"
+            height="40"
+            alt=""
+          />
+          <span class="flex min-w-0 flex-col items-start gap-0.5 pl-3.5">
+            <span
+              class="relative text-[13px] font-bold tracking-[0.2em] text-[var(--color-text-muted)] before:absolute before:top-0.5 before:bottom-0.5 before:-left-3.5 before:w-0.5 before:rounded-sm before:bg-gradient-to-b before:from-sky-300 before:to-blue-700"
+            >
+              M3U8
+            </span>
+            <span
+              class="bg-gradient-to-r from-sky-400 via-blue-400 to-blue-800 bg-clip-text text-xl font-extrabold tracking-[0.14em] text-transparent"
+            >
+              FLOW
+            </span>
+          </span>
+        </h1>
 
-    .aside-content {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: auto;
-    }
+        <nav class="flex flex-col gap-1 py-2">
+          <RouterLink
+            :to="{ name: 'download-manage' }"
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-bold transition-colors"
+            :class="navClass(activeDownload)"
+          >
+            <Download class="size-5 shrink-0" aria-hidden="true" />
+            下载管理
+          </RouterLink>
+          <RouterLink
+            :to="{ name: 'completed' }"
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-bold transition-colors"
+            :class="navClass(activeCompleted)"
+          >
+            <CircleCheck class="size-5 shrink-0" aria-hidden="true" />
+            已完成
+          </RouterLink>
+          <RouterLink
+            :to="{ name: 'global-config' }"
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-bold transition-colors"
+            :class="navClass(activeConfig)"
+          >
+            <Settings class="size-5 shrink-0" aria-hidden="true" />
+            全局设置
+          </RouterLink>
+        </nav>
 
-    .aside-footer {
-      flex-shrink: 0;
-      margin-top: auto;
-      padding: 10px;
-      padding-top: 12px;
-      text-align: center;
-    }
+        <div class="my-4 h-px bg-[var(--color-border)]" />
 
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin: 0 0 8px;
-      padding: 4px 0 16px;
-      font-size: inherit;
-      font-weight: inherit;
-      line-height: 1;
+        <div class="flex items-center justify-between gap-3 rounded-lg px-1 py-2">
+          <span class="text-sm text-[var(--color-text-muted)]">主题</span>
+          <div class="flex items-center gap-2">
+            <Sun class="size-4 text-amber-500" />
+            <UiSwitch v-model="isDark" />
+            <Moon class="size-4 text-sky-600 dark:text-sky-300" />
+          </div>
+        </div>
+      </div>
 
-      &__mark {
-        flex-shrink: 0;
-        display: block;
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        box-shadow:
-          0 2px 8px rgba(15, 23, 42, 0.12),
-          0 0 0 1px rgba(148, 163, 184, 0.2);
-        html.dark & {
-          box-shadow:
-            0 2px 14px rgba(29, 78, 216, 0.35),
-            0 0 0 1px rgba(56, 189, 248, 0.25);
-        }
-      }
+      <div
+        v-if="authStore.accessToken"
+        class="shrink-0 border-t border-[var(--color-border)] p-3 text-center"
+      >
+        <UiButton variant="ghost" class="text-red-600 dark:text-red-400" @click="logout"
+          >退出</UiButton
+        >
+      </div>
+    </aside>
 
-      &__text {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 3px;
-        padding-left: 14px;
-        min-width: 0;
+    <!-- 主内容 -->
+    <main
+      class="min-h-0 min-w-0 flex-1 overflow-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0"
+    >
+      <RouterView />
+    </main>
 
-        &::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 2px;
-          bottom: 2px;
-          width: 3px;
-          border-radius: 2px;
-          background: linear-gradient(180deg, #93c5fd 0%, #38bdf8 45%, #1d4ed8 100%);
-        }
-      }
-
-      &__line {
-        display: block;
-        letter-spacing: 0.06em;
-
-        &--top {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--el-text-color-secondary);
-          letter-spacing: 0.2em;
-        }
-
-        &--bottom {
-          font-size: 21px;
-          font-weight: 800;
-          letter-spacing: 0.14em;
-          background: linear-gradient(120deg, #38bdf8 0%, #60a5fa 35%, #1d4ed8 100%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-        }
-      }
-    }
-    .el-menu {
-      border-right: none;
-      .el-menu-item {
-        font-size: 16px;
-        font-weight: bold;
-      }
-    }
-    .theme-switch {
-      :deep(.el-switch__action) {
-        background-color: v-bind(actionColor) !important;
-      }
-    }
-  }
-}
-</style>
+    <!-- 移动端底栏 -->
+    <nav
+      v-if="!isDesktop"
+      class="fixed inset-x-0 bottom-0 z-40 flex border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
+    >
+      <RouterLink
+        :to="{ name: 'download-manage' }"
+        class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium"
+        :class="tabClass(activeDownload)"
+      >
+        <Download class="size-6" />
+        下载
+      </RouterLink>
+      <RouterLink
+        :to="{ name: 'completed' }"
+        class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium"
+        :class="tabClass(activeCompleted)"
+      >
+        <CircleCheck class="size-6" />
+        已完成
+      </RouterLink>
+      <RouterLink
+        :to="{ name: 'global-config' }"
+        class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium"
+        :class="tabClass(activeConfig)"
+      >
+        <Settings class="size-6" />
+        设置
+      </RouterLink>
+    </nav>
+  </div>
+</template>

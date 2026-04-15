@@ -1,69 +1,98 @@
 <template>
-  <el-card class="download-view-wrapper">
+  <UiCard class="h-full">
     <template #header>
-      <div class="card-header">
-        <div class="header-title">
-          <span>下载管理</span>
-          <el-tag type="info" effect="plain">任务数 {{ tasks.length }}</el-tag>
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-base font-semibold text-[var(--color-text)]">下载管理</span>
+            <UiTag variant="info" effect="plain">任务数 {{ tasks.length }}</UiTag>
+          </div>
+          <div class="flex items-center gap-2 md:hidden">
+            <UiSwitch v-model="isDark" />
+            <UiButton
+              v-if="authStore.accessToken"
+              variant="ghost"
+              size="sm"
+              class="text-red-600 dark:text-red-400"
+              @click="logout"
+            >
+              退出
+            </UiButton>
+          </div>
         </div>
-        <div class="header-actions">
-          <el-button type="primary" @click="openCreateDialog">添加任务</el-button>
-          <el-button
-            type="warning"
-            plain
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <UiButton variant="primary" class="w-full sm:w-auto" @click="openCreateDialog"
+            >添加任务</UiButton
+          >
+          <UiButton
+            variant="warning"
+            class="w-full sm:w-auto"
             :disabled="tasks.length === 0 || allActionLoading"
             :loading="allActionLoading && allActionType === 'stop'"
             @click="stopAll"
           >
             全部暂停
-          </el-button>
-          <el-button
-            type="success"
-            plain
+          </UiButton>
+          <UiButton
+            variant="success"
+            class="w-full sm:w-auto"
             :disabled="tasks.length === 0 || allActionLoading"
             :loading="allActionLoading && allActionType === 'start'"
             @click="startAll"
           >
             全部开始
-          </el-button>
+          </UiButton>
         </div>
       </div>
     </template>
-    <div v-if="tasks.length === 0" class="empty-wrap">
-      <el-empty description="暂无下载中/等待中/暂停任务" />
+
+    <div v-if="tasks.length === 0" class="py-8">
+      <UiEmpty description="暂无下载中/等待中/暂停任务" />
     </div>
-    <div v-else class="task-list">
+    <div v-else class="flex flex-col gap-3">
       <DownloadItem v-for="task in tasks" :key="task.id" :task="task" />
     </div>
-  </el-card>
+  </UiCard>
   <CreateTaskDialog v-model="createDialogVisible" />
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
-import type { TaskModel } from '@/types/models'
-import DownloadItem from '@/components/DownloadItem.vue'
-import CreateTaskDialog from '@/components/CreateTaskDialog.vue'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { useDark } from '@vueuse/core'
+
+import CreateTaskDialog from '@/components/CreateTaskDialog.vue'
+import DownloadItem from '@/components/DownloadItem.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiCard from '@/components/ui/UiCard.vue'
+import UiEmpty from '@/components/ui/UiEmpty.vue'
+import UiTag from '@/components/ui/UiTag.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
+import type { TaskModel } from '@/types/models'
+import { toast } from '@/utils/toast'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
 const tasks = ref<TaskModel[]>([])
 const allActionLoading = ref(false)
 const allActionType = ref<'start' | 'stop' | null>(null)
+const authStore = useAuthStore()
+const isDark = useDark()
 let abortController: AbortController | null = null
 let reconnectTimer: number | null = null
 let reconnectAttempt = 0
 let disposed = false
-/** 最近一次收到 SSE 数据的时间（用于检测「半开」连接：后端重启后可能长期不触发 onerror） */
 let lastSseDataAt = 0
 let idleCheckTimer: number | null = null
-/** 后端约 1s 推送一次，超过该时间无数据视为断线，主动重连 */
 const SSE_IDLE_MS = 8000
 const IDLE_CHECK_INTERVAL_MS = 3000
 const createDialogVisible = ref(false)
+
+async function logout() {
+  authStore.clearTokens()
+  await router.replace({ name: 'login' })
+}
 
 const stopIdleWatchdog = () => {
   if (idleCheckTimer !== null) {
@@ -115,11 +144,10 @@ const connectProgressSSE = () => {
   if (disposed) return
 
   abortController = new AbortController()
-  const auth = useAuthStore()
 
   void fetchEventSource('/api/tasks/progress', {
     signal: abortController.signal,
-    headers: auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {},
+    headers: authStore.accessToken ? { Authorization: `Bearer ${authStore.accessToken}` } : {},
     async onopen(response) {
       if (response.ok) {
         reconnectAttempt = 0
@@ -129,18 +157,18 @@ const connectProgressSSE = () => {
       }
 
       if (response.status === 401) {
-        // 401：尝试刷新 token 后重连
         try {
-          if (!auth.refreshToken) throw new Error('no refresh token')
+          if (!authStore.refreshToken) throw new Error('no refresh token')
           const { data } = await axios.post('/api/auth/refresh', {
-            refresh_token: auth.refreshToken,
+            refresh_token: authStore.refreshToken,
           })
-          if (!data || data.code !== 0 || !data.data) throw new Error(data?.message || 'refresh failed')
-          auth.setTokens(data.data.access_token, data.data.refresh_token)
+          if (!data || data.code !== 0 || !data.data)
+            throw new Error(data?.message || 'refresh failed')
+          authStore.setTokens(data.data.access_token, data.data.refresh_token)
           connectProgressSSE()
           return
         } catch {
-          auth.clearTokens()
+          authStore.clearTokens()
           await router.replace({ name: 'login' })
           throw new Error('unauthorized')
         }
@@ -149,11 +177,13 @@ const connectProgressSSE = () => {
       throw new Error(`SSE open failed: ${response.status}`)
     },
     onmessage(event) {
+      if (!event.data) return
       lastSseDataAt = Date.now()
       try {
         const data = JSON.parse(event.data) as TaskModel[]
         tasks.value = Array.isArray(data) ? data : []
       } catch (error) {
+        console.log({ event, data: event.data })
         console.error('SSE data parse error:', error)
       }
     },
@@ -181,10 +211,10 @@ const stopAll = async () => {
   allActionType.value = 'stop'
   try {
     await axios.post('/api/tasks/stop_all')
-    ElMessage.success('已发送全部暂停指令')
+    toast.success('已发送全部暂停指令')
   } catch (error) {
     console.error(error)
-    ElMessage.error('全部暂停失败')
+    toast.error('全部暂停失败')
   } finally {
     allActionLoading.value = false
     allActionType.value = null
@@ -197,10 +227,10 @@ const startAll = async () => {
   allActionType.value = 'start'
   try {
     await axios.post('/api/tasks/start_all')
-    ElMessage.success('已发送全部开始指令')
+    toast.success('已发送全部开始指令')
   } catch (error) {
     console.error(error)
-    ElMessage.error('全部开始失败')
+    toast.error('全部开始失败')
   } finally {
     allActionLoading.value = false
     allActionType.value = null
@@ -216,39 +246,3 @@ onUnmounted(() => {
   cleanupSSE()
 })
 </script>
-
-<style scoped lang="scss">
-.download-view-wrapper {
-  box-sizing: border-box;
-  height: 100%;
-  width: 100%;
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .task-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .empty-wrap {
-    padding: 20px 0;
-  }
-}
-</style>

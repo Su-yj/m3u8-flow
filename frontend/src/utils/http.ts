@@ -74,7 +74,8 @@ export function setupAxiosInterceptors(pinia: Pinia, router: Router) {
         await refreshing
 
         config.headers = config.headers ?? {}
-        ;(config.headers as Record<string, string>).Authorization = `Bearer ${useAuthStore(pinia).accessToken}`
+        ;(config.headers as Record<string, string>).Authorization =
+          `Bearer ${useAuthStore(pinia).accessToken}`
 
         return axios(config)
       } catch (e) {
@@ -85,4 +86,3 @@ export function setupAxiosInterceptors(pinia: Pinia, router: Router) {
     },
   )
 }
-

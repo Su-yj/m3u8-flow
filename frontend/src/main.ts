@@ -1,6 +1,4 @@
-import 'element-plus/dist/index.css'
-import 'element-plus/theme-chalk/dark/css-vars.css'
-import './assets/styles/css-vars.scss'
+import './assets/styles/tailwind.css'
 import './assets/font/iconfont.css'
 import './assets/styles/base.scss'
 

@@ -1,6 +1,6 @@
 {
   "name": "m3u8-flow",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,13 +16,15 @@
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@vueuse/core": "^14.2.1",
     "axios": "^1.13.6",
-    "element-plus": "^2.13.6",
+    "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.30",
     "vue-router": "^5.0.3"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.12.0",
     "@vitejs/plugin-vue": "^6.0.4",
@@ -37,6 +39,7 @@
     "oxfmt": "^0.37.0",
     "oxlint": "~1.51.0",
     "sass-embedded": "^1.98.0",
+    "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue-components": "^32.0.0",
