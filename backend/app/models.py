@@ -17,6 +17,7 @@ from app.schemas.services.downloader import DownloadConfig
 from app.services.downloader import Downloader
 from app.services.merge_parser import MergeParser
 from app.utils.http_retries import get_transport
+from app.utils.path_safety import normalize_and_validate_download_dir, safe_join_under_base, validate_safe_task_name
 
 
 class BaseConfig(Model):
@@ -77,7 +78,10 @@ class Task(BaseConfig):
 
     @cached_property
     def download_path(self) -> Path:
-        return Path(self.download_dir) / self.name
+        base = normalize_and_validate_download_dir(self.download_dir)
+        # 兜底防御：即便数据库里存在历史脏数据，也不允许路径穿越
+        name = validate_safe_task_name(self.name)
+        return safe_join_under_base(base, name)
 
     @cached_property
     def cache_path(self) -> Path:

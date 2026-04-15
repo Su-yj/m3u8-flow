@@ -78,7 +78,7 @@ class DownloadInfo(BaseModel):
     def eta(self) -> float | None:
         try:
             return (
-                (self.total_duration - self.downloaded_segments)
+                (self.total_size - self.downloaded_segments)
                 * (self.total_size / self.downloaded_segments)
                 / self.speed
             )

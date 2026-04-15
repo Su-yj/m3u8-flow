@@ -233,7 +233,7 @@ class TaskManager:
                 with contextlib.suppress(FileNotFoundError):
                     await task.clean_cache()
             if delete_downloaded_files:
-                with contextlib.suppress(FileNotFoundError):
+                with contextlib.suppress(FileNotFoundError, ValueError):
                     shutil.rmtree(task.download_path)
             await task.delete()
             await self._schedule_tasks_locked()

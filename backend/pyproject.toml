@@ -49,8 +49,3 @@ markers = [
 # 值为「模块路径.变量名」，需指向含 TORTOISE_ORM 字典的模块
 [tool.tortoise]
 tortoise_orm = "app.core.config.TORTOISE_ORM"
-
-[[tool.uv.index]]
-default = true
-name = "ustc"
-url = "https://mirrors.ustc.edu.cn/pypi/simple/"

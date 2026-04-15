@@ -2,10 +2,15 @@ from functools import cached_property
 from pathlib import Path
 
 import m3u8
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from app.interfaces.task import TaskStatus
 from app.schemas.services.downloader import DownloadConfig, DownloadInfo
+from app.utils.path_safety import (
+    normalize_and_validate_download_dir,
+    safe_join_under_base,
+    validate_safe_task_name,
+)
 
 
 class TaskConfig(BaseModel):
@@ -19,6 +24,23 @@ class TaskConfig(BaseModel):
     headers: dict[str, str] | None = Field(default=None, title="请求头")
     merge_video: bool = Field(default=True, title="是否合并视频")
     delete_cache: bool = Field(default=True, title="是否删除缓存")
+
+    @field_validator("task_name")
+    @classmethod
+    def validate_task_name(cls, v: str) -> str:
+        return validate_safe_task_name(v)
+
+    @field_validator("download_dir")
+    @classmethod
+    def validate_download_dir(cls, v: str) -> str:
+        return str(normalize_and_validate_download_dir(v))
+
+    @model_validator(mode="after")
+    def validate_final_path(self) -> "TaskConfig":
+        base = normalize_and_validate_download_dir(self.download_dir)
+        safe_join_under_base(base, self.task_name)
+        self.download_dir = str(base)
+        return self
 
     @computed_field(title="下载路径")
     @cached_property
