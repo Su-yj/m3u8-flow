@@ -2,7 +2,13 @@
   <el-container class="app">
     <el-aside width="256px" class="aside">
       <div class="aside-content">
-        <h1>M3U8 Flow</h1>
+        <h1 class="brand-logo">
+          <img class="brand-logo__mark" src="/favicon.svg" width="40" height="40" alt="" />
+          <span class="brand-logo__text">
+            <span class="brand-logo__line brand-logo__line--top">M3U8</span>
+            <span class="brand-logo__line brand-logo__line--bottom">FLOW</span>
+          </span>
+        </h1>
         <el-menu router>
           <el-menu-item index="/" :route="{ name: 'download-manage' }">
             <el-icon><Download /></el-icon>
@@ -97,10 +103,75 @@ async function logout() {
       text-align: center;
     }
 
-    h1 {
-      font-size: 22px;
-      font-weight: bolder;
-      text-align: center;
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 0 0 8px;
+      padding: 4px 0 16px;
+      font-size: inherit;
+      font-weight: inherit;
+      line-height: 1;
+
+      &__mark {
+        flex-shrink: 0;
+        display: block;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        box-shadow:
+          0 2px 8px rgba(15, 23, 42, 0.12),
+          0 0 0 1px rgba(148, 163, 184, 0.2);
+        html.dark & {
+          box-shadow:
+            0 2px 14px rgba(29, 78, 216, 0.35),
+            0 0 0 1px rgba(56, 189, 248, 0.25);
+        }
+      }
+
+      &__text {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+        padding-left: 14px;
+        min-width: 0;
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 2px;
+          bottom: 2px;
+          width: 3px;
+          border-radius: 2px;
+          background: linear-gradient(180deg, #93c5fd 0%, #38bdf8 45%, #1d4ed8 100%);
+        }
+      }
+
+      &__line {
+        display: block;
+        letter-spacing: 0.06em;
+
+        &--top {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--el-text-color-secondary);
+          letter-spacing: 0.2em;
+        }
+
+        &--bottom {
+          font-size: 21px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          background: linear-gradient(120deg, #38bdf8 0%, #60a5fa 35%, #1d4ed8 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+      }
     }
     .el-menu {
       border-right: none;
